@@ -1210,8 +1210,9 @@
           const auth = getOpenAIAuthSection(payload);
           const idAuth = getOpenAIAuthSection(idPayload);
           const profile = getOpenAIProfileSection(payload);
-          const accessTokenExpiresAt = unixSecondsFromJwtExp(payload?.exp);
-          const expiresAt = firstNonEmpty(
+          const hasRefreshToken = Boolean(refreshToken);
+          const accessTokenExpiresAt = hasRefreshToken ? undefined : unixSecondsFromJwtExp(payload?.exp);
+          const expiresAt = hasRefreshToken ? undefined : firstNonEmpty(
             payload ? timestampFromUnixSeconds(payload.exp) : undefined,
             normalizeTimestamp(record.expires),
             normalizeTimestamp(record.expiresAt),
@@ -1340,7 +1341,7 @@
             platform: "openai",
             type: "oauth",
             expires_at: accessTokenExpiresAt,
-            auto_pause_on_expired: true,
+            auto_pause_on_expired: accessTokenExpiresAt ? true : undefined,
             concurrency: 10,
             priority: 1,
             credentials: {

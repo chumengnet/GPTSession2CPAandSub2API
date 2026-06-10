@@ -186,6 +186,35 @@ function testSub2apiAccountsUseTheirOwnAccessTokenExpiry() {
   assert.equal(document.accounts[1].auto_pause_on_expired, true);
 }
 
+function testSub2apiAccountWithRefreshTokenOmitsAccessTokenExpiry() {
+  const { elements } = loadPageScript();
+  const input = elements.get("#session-input");
+  const output = elements.get("#output");
+
+  input.value = JSON.stringify({
+    user: {
+      email: "refreshable@example.com",
+    },
+    accessToken: jwtWithPayload({
+      exp: 1780473960,
+      "https://api.openai.com/auth": {
+        chatgpt_account_id: "chatgpt-account-refreshable",
+      },
+    }),
+    refreshToken: "real-refresh-token",
+    expiresAt: "2026-06-01T00:00:00.000Z",
+  });
+  dispatch(input, "input");
+
+  const document = JSON.parse(output.value);
+  const account = document.accounts[0];
+
+  assert.equal(account.expires_at, undefined);
+  assert.equal(account.auto_pause_on_expired, undefined);
+  assert.equal(account.credentials.expires_at, undefined);
+  assert.equal(account.credentials.expires_in, undefined);
+}
+
 function testSyntheticIdTokenHasCodexParseableJwtFormat() {
   const { elements, formatButtons } = loadPageScript();
   const cpaButton = formatButtons.find((button) => button.dataset.format === "cpa");
@@ -411,6 +440,7 @@ function testCodexManagerAuthJsonPreservesRealRefreshAndMetadata() {
 
 testSub2apiAccountUsesAccessTokenExpiry();
 testSub2apiAccountsUseTheirOwnAccessTokenExpiry();
+testSub2apiAccountWithRefreshTokenOmitsAccessTokenExpiry();
 testSyntheticIdTokenHasCodexParseableJwtFormat();
 testAxonHubAuthJsonUsesPlaceholderRefreshTokenWhenMissing();
 testAxonHubAuthJsonPreservesRealRefreshToken();
